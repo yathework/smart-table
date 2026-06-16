@@ -1,11 +1,26 @@
-import {rules, createComparison} from "../lib/compare.js";
-
+import { createComparison } from '../lib/compare.js';
 
 export function initSearching(searchField) {
-    // @todo: #5.1 — настроить компаратор
+  const compareFn = createComparison(
+    ['skipNonExistentSourceFields', 'skipEmptyTargetValues', 'caseInsensitiveStringIncludes'],
+    []
+  );
 
-    return (data, state, action) => {
-        // @todo: #5.2 — применить компаратор
-        return data;
-    }
+  return (data, state, action) => {
+    if (!state.search) return data;
+    const searchTerm = state.search.trim();
+    if (!searchTerm) return data;
+
+    return data.filter(item => {
+      const customerName = item.customer ? `${item.customer.first_name} ${item.customer.last_name}` : '';
+      const sellerName = item.seller ? `${item.seller.first_name} ${item.seller.last_name}` : '';
+      const searchable = {
+        date: item.date || '',
+        customer: customerName,
+        seller: sellerName,
+        total: String(item.total || '')
+      };
+      return compareFn(searchable, { search: searchTerm });
+    });
+  };
 }

@@ -1,18 +1,55 @@
-import {getPages} from "../lib/utils.js";
+import { getPages } from '../lib/utils.js';
 
-export const initPagination = ({pages, fromRow, toRow, totalRows}, createPage) => {
-    // @todo: #2.3 — подготовить шаблон кнопки для страницы и очистить контейнер
+export function initPagination({ pages, fromRow, toRow, totalRows }, createPage) {
+  if (pages) pages.innerHTML = '';
 
-    return (data, state, action) => {
-        // @todo: #2.1 — посчитать количество страниц, объявить переменные и константы
+  return (data, state, action) => {
+    const rowsPerPage = parseInt(state.rowsPerPage) || 10;
+    const total = data.length;
+    const maxPage = Math.ceil(total / rowsPerPage) || 1;
+    let currentPage = parseInt(state.page) || 1;
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > maxPage) currentPage = maxPage;
 
-        // @todo: #2.6 — обработать действия
-
-        // @todo: #2.4 — получить список видимых страниц и вывести их
-
-        // @todo: #2.5 — обновить статус пагинации
-
-        // @todo: #2.2 — посчитать сколько строк нужно пропустить и получить срез данных
-        return data.slice(0, 10);
+    if (action && action.name) {
+      if (action.name === 'first') currentPage = 1;
+      else if (action.name === 'prev') currentPage = Math.max(1, currentPage - 1);
+      else if (action.name === 'next') currentPage = Math.min(maxPage, currentPage + 1);
+      else if (action.name === 'last') currentPage = maxPage;
+      else if (action.name === 'page') currentPage = parseInt(action.value) || 1;
+      const radios = document.querySelectorAll('input[name="page"]');
+      radios.forEach(r => r.checked = (parseInt(r.value) === currentPage));
     }
+
+    const visiblePages = getPages(currentPage, maxPage, 5);
+    if (pages) {
+      pages.innerHTML = '';
+      visiblePages.forEach(p => {
+        const label = document.createElement('label');
+        label.className = 'pagination-button';
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'page';
+        radio.value = p;
+        radio.checked = (p === currentPage);
+        radio.addEventListener('change', () => {
+          const event = new CustomEvent('pagination-change', { detail: { page: p } });
+          document.dispatchEvent(event);
+        });
+        label.appendChild(radio);
+        const span = document.createElement('span');
+        span.textContent = p;
+        label.appendChild(span);
+        pages.appendChild(label);
+      });
+    }
+
+    const from = (currentPage - 1) * rowsPerPage + 1;
+    const to = Math.min(currentPage * rowsPerPage, total);
+    if (fromRow) fromRow.textContent = total === 0 ? 0 : from;
+    if (toRow) toRow.textContent = total === 0 ? 0 : to;
+    if (totalRows) totalRows.textContent = total;
+
+    return data.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  };
 }
