@@ -14,32 +14,36 @@ export function initFiltering(elements, indexes) {
   }
 
   return (data, state, action) => {
+    // Очистка поля (сбрасывает значение, но не влияет на фильтрацию напрямую)
     if (action && action.name === 'clear') {
       const field = action.field;
       const input = elements[`searchBy${field}`];
       if (input) input.value = '';
-      return data;
     }
 
-    const filters = {};
-    if (state.date) filters.date = state.date;
-    if (state.customer) filters.customer = state.customer;
-    if (state.seller) filters.seller = state.seller;
-    if (state.totalFrom || state.totalTo) {
-      filters.total = [state.totalFrom || '', state.totalTo || ''];
-    }
+    return data.filter(item => {
+      // Фильтр по дате (подстрока)
+      if (state.date && !item.date.includes(state.date)) return false;
 
-    if (Object.keys(filters).length === 0) return data;
-
-    const compareFn = createComparison(defaultRules, [
-      (key, sourceVal, targetVal) => {
-        if (key === 'seller' && typeof sourceVal === 'object' && sourceVal !== null) {
-          return { result: sourceVal.id === targetVal };
-        }
-        return { continue: true };
+      // Фильтр по покупателю (имя + фамилия, регистронезависимо)
+      if (state.customer) {
+        const customerName = `${item.customer.first_name} ${item.customer.last_name}`;
+        if (!customerName.toLowerCase().includes(state.customer.toLowerCase())) return false;
       }
-    ]);
 
-    return data.filter(item => compareFn(item, filters));
+      // Фильтр по продавцу (по id)
+      if (state.seller) {
+        if (item.seller.id !== state.seller) return false;
+      }
+
+      // Фильтр по диапазону суммы
+      if (state.totalFrom || state.totalTo) {
+        const total = item.total;
+        if (state.totalFrom && total < parseFloat(state.totalFrom)) return false;
+        if (state.totalTo && total > parseFloat(state.totalTo)) return false;
+      }
+
+      return true;
+    });
   };
 }
