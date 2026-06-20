@@ -2,39 +2,42 @@ import { cloneTemplate } from '../lib/utils.js';
 
 export function initTable(settings, onAction) {
   const { tableTemplate, rowTemplate, before, after } = settings;
-  
-  const tableClone = cloneTemplate(tableTemplate);
-  const form = tableClone.container;
+
+  const root = cloneTemplate(tableTemplate);
+  const form = root.container;
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'table-wrapper';
 
-  const outside = before.filter(tmpl => tmpl === 'search');
-  const inside = before.filter(tmpl => tmpl === 'header' || tmpl === 'filter');
+  const outside = before.filter(name => name === 'search');
+  const inside = before.filter(name => name === 'header' || name === 'filter');
 
-  outside.forEach(tmpl => {
-    const el = cloneTemplate(tmpl);
-    wrapper.appendChild(el.container);
+  outside.forEach(name => {
+    const tmpl = cloneTemplate(name);
+    wrapper.appendChild(tmpl.container);
+    root[name] = tmpl;
   });
 
-  inside.forEach(tmpl => {
-    const el = cloneTemplate(tmpl);
-    form.prepend(el.container);
+  inside.forEach(name => {
+    const tmpl = cloneTemplate(name);
+    form.prepend(tmpl.container);
+    root[name] = tmpl;
   });
 
   wrapper.appendChild(form);
 
-  if (after && after.length) {
-    after.forEach(tmpl => {
-      const el = cloneTemplate(tmpl);
-      wrapper.appendChild(el.container);
-    });
-  }
+  after.forEach(name => {
+    const tmpl = cloneTemplate(name);
+    wrapper.appendChild(tmpl.container);
+    root[name] = tmpl;
+  });
 
-  const elements = Array.from(wrapper.querySelectorAll('[data-name]')).reduce((acc, el) => {
+  root.container = wrapper;
+
+  const allElements = Array.from(wrapper.querySelectorAll('[data-name]')).reduce((acc, el) => {
     acc[el.dataset.name] = el;
     return acc;
   }, {});
+  root.elements = allElements;
 
   wrapper.addEventListener('click', (e) => {
     const target = e.target.closest('button[type="submit"]');
@@ -45,6 +48,7 @@ export function initTable(settings, onAction) {
         value: target.value,
         field: target.dataset.field,
         order: target.dataset.value,
+        target: target,
       };
       onAction(action);
     }
@@ -67,30 +71,34 @@ export function initTable(settings, onAction) {
   const render = (data) => {
     const rowTemplateEl = document.getElementById(rowTemplate);
     const nextRows = data.map(item => {
-      const clone = rowTemplateEl.content.firstElementChild.cloneNode(true);
-      const cells = clone.querySelectorAll('[data-name]');
-      cells.forEach(cell => {
-        const key = cell.dataset.name;
-        if (key in item) {
-          if (key === 'customer' || key === 'seller') {
-            const obj = item[key];
-            if (obj && typeof obj === 'object') {
-              cell.textContent = `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
-            } else {
-              cell.textContent = obj || '';
-            }
+      const row = cloneTemplate(rowTemplate);
+      Object.keys(item).forEach(key => {
+        if (row.elements[key]) {
+          const element = row.elements[key];
+          if (element.tagName === 'INPUT' || element.tagName === 'SELECT') {
+            element.value = item[key];
           } else {
-            cell.textContent = item[key];
+            if (key === 'customer' || key === 'seller') {
+              const obj = item[key];
+              if (obj && typeof obj === 'object') {
+                element.textContent = `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
+              } else {
+                element.textContent = obj || '';
+              }
+            } else {
+              element.textContent = item[key];
+            }
           }
         }
       });
-      return clone;
+      return row.container;
     });
-    const rowsContainer = elements.rows || form.querySelector('[data-name="rows"]');
+    const rowsContainer = root.elements.rows || form.querySelector('[data-name="rows"]');
     if (rowsContainer) {
       rowsContainer.replaceChildren(...nextRows);
     }
   };
 
-  return { container: wrapper, elements, render };
+  root.render = render;
+  return root;
 }

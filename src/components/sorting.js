@@ -7,11 +7,13 @@ export function initSorting(columns) {
 
     if (action && action.name === 'sort') {
       field = action.field;
-      order = action.value;
-      // Сбрасываем другие кнопки сортировки
+      order = action.order;
+
       const buttons = document.querySelectorAll('button[name="sort"]');
       buttons.forEach(btn => {
-        if (btn.dataset.field !== field) {
+        if (btn.dataset.field === field) {
+          btn.dataset.value = order;
+        } else {
           btn.dataset.value = 'none';
         }
       });
@@ -30,13 +32,10 @@ export function initSorting(columns) {
       let valA = a[field];
       let valB = b[field];
 
-      // Для даты преобразуем в объект Date
       if (field === 'date') {
         valA = new Date(valA);
         valB = new Date(valB);
-      }
-      // Для суммы приводим к числу
-      else if (field === 'total') {
+      } else if (field === 'total') {
         valA = parseFloat(valA);
         valB = parseFloat(valB);
       }
