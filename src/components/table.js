@@ -63,7 +63,7 @@ export function initTable(settings, onAction) {
 
   wrapper.addEventListener('change', (e) => {
     const target = e.target;
-    if (target.closest('form')) {
+    if (target.name === 'rowsPerPage') {
       onAction({ name: 'change', target });
     }
   });
@@ -81,7 +81,7 @@ export function initTable(settings, onAction) {
             if (key === 'customer' || key === 'seller') {
               const obj = item[key];
               if (obj && typeof obj === 'object') {
-                element.textContent = `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
+                element.textContent = obj.name || `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
               } else {
                 element.textContent = obj || '';
               }
