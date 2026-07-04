@@ -1,44 +1,37 @@
-import { createComparison, defaultRules } from '../lib/compare.js';
+export function initFiltering(elements) {
+    const updateIndexes = (elements, indexes) => {
+        const sellerSelect = elements.searchBySeller;
+        if (sellerSelect) {
+            sellerSelect.innerHTML = '<option value="">—</option>';
+            const sellers = indexes.searchBySeller || [];
+            sellers.forEach(seller => {
+                const option = document.createElement('option');
+                option.value = seller.id;
+                option.textContent = seller.name;
+                sellerSelect.appendChild(option);
+            });
+        }
+    };
 
-export function initFiltering(elements, indexes) {
-    const sellerSelect = elements.searchBySeller;
-    if (sellerSelect) {
-        sellerSelect.innerHTML = '<option value="">—</option>';
-        const sellers = Object.values(indexes.sellers);
-        sellers.forEach(seller => {
-            const option = document.createElement('option');
-            option.value = seller.id;
-            option.textContent = seller.name;
-            sellerSelect.appendChild(option);
-        });
-    }
-
-    return (data, state, action) => {
+    const applyFiltering = (query, state, action) => {
         if (action && action.name === 'clear') {
             const field = action.field;
             const input = elements[`searchBy${field}`];
             if (input) input.value = '';
         }
 
-        return data.filter(item => {
-            if (state.date && !item.date.includes(state.date)) return false;
+        const filter = {};
+        const filterFields = ['searchByDate', 'searchByCustomer', 'searchBySeller', 'totalFrom', 'totalTo'];
 
-            if (state.customer) {
-                const customerName = item.customer.name || '';
-                if (!customerName.toLowerCase().includes(state.customer.toLowerCase())) return false;
+        filterFields.forEach(key => {
+            const el = elements[key];
+            if (el && el.value) {
+                filter[`filter[${el.name}]`] = el.value;
             }
-
-            if (state.seller) {
-                if (item.seller.id !== state.seller) return false;
-            }
-
-            if (state.totalFrom || state.totalTo) {
-                const total = item.total;
-                if (state.totalFrom && total < parseFloat(state.totalFrom)) return false;
-                if (state.totalTo && total > parseFloat(state.totalTo)) return false;
-            }
-
-            return true;
         });
+
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query;
     };
+
+    return { updateIndexes, applyFiltering };
 }

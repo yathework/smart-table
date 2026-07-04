@@ -1,7 +1,7 @@
-import { sortCollection, sortMap } from '../lib/sort.js';
+import { sortMap } from '../lib/sort.js';
 
 export function initSorting(columns) {
-    return (data, state, action) => {
+    return (query, state, action) => {
         let field = null;
         let order = null;
 
@@ -26,26 +26,7 @@ export function initSorting(columns) {
             }
         }
 
-        if (!field || order === 'none') return data;
-
-        const sorted = [...data];
-        sorted.sort((a, b) => {
-            let valA = a[field];
-            let valB = b[field];
-
-            if (field === 'date') {
-                valA = new Date(valA);
-                valB = new Date(valB);
-            } else if (field === 'total') {
-                valA = parseFloat(valA);
-                valB = parseFloat(valB);
-            }
-
-            if (valA < valB) return order === 'up' ? -1 : 1;
-            if (valA > valB) return order === 'up' ? 1 : -1;
-            return 0;
-        });
-
-        return sorted;
+        const sort = (field && order !== 'none') ? `${field}:${order}` : null;
+        return sort ? Object.assign({}, query, { sort }) : query;
     };
 }

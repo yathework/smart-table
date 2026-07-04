@@ -10,24 +10,7 @@ import { initFiltering } from './components/filtering.js';
 import { initSorting } from './components/sorting.js';
 import { initPagination } from './components/pagination.js';
 
-function calculateSimpleRevenue(purchase, _product) {
-    const { discount, sale_price, quantity } = purchase;
-    return sale_price * quantity * (1 - discount / 100);
-}
-
-function calculateBonusByProfit(index, total, seller) {
-    const { profit } = seller;
-    if (index === 0) return profit * 0.15;
-    if (index === 1 || index === 2) return profit * 0.10;
-    if (index === total - 1) return 0;
-    return profit * 0.05;
-}
-
-function analyzeSalesData(data, options) {
-    // ...
-}
-
-const { data, ...indexes } = initData(sourceData);
+const api = initData(sourceData);
 
 const sampleTable = initTable({
     tableTemplate: 'table',
@@ -37,9 +20,9 @@ const sampleTable = initTable({
 }, render);
 
 const applySearching = initSearching('search');
-const applyFiltering = initFiltering(sampleTable.elements, indexes);
+const { applyFiltering, updateIndexes } = initFiltering(sampleTable.elements);
 const applySorting = initSorting(['date', 'total']);
-const applyPagination = initPagination(
+const { applyPagination, updatePagination } = initPagination(
     sampleTable.pagination.elements,
     (el, page, isCurrent) => {
         const input = el.querySelector('input');
@@ -61,7 +44,7 @@ function collectState() {
     const searchInput = sampleTable.elements.search;
     if (searchInput) {
         state.search = searchInput.value;
-    }    
+    }
     if (sampleTable.elements.rowsPerPage) {
         state.rowsPerPage = parseInt(sampleTable.elements.rowsPerPage.value) || 10;
     } else {
@@ -71,20 +54,32 @@ function collectState() {
     return state;
 }
 
-function render(action) {
-    let state = collectState();
-    let result = [...data];
+async function render(action) {
+    const state = collectState();
+    let query = {};
 
-    result = applySearching(result, state, action);
-    result = applyFiltering(result, state, action);
-    result = applySorting(result, state, action);
-    result = applyPagination(result, state, action);
+    query = applySearching(query, state, action);
+    query = applyFiltering(query, state, action);
+    query = applySorting(query, state, action);
+    query = applyPagination(query, state, action);
 
-    sampleTable.render(result);
+    const { total, items } = await api.getRecords(query);
+
+    updatePagination(total, query);
+    sampleTable.render(items);
 }
 
-const appRoot = document.querySelector('#app');
-appRoot.appendChild(sampleTable.container);
+async function init() {
+    const indexes = await api.getIndexes();
+    updateIndexes(sampleTable.filter.elements, {
+        searchBySeller: Object.values(indexes.sellers)
+    });
+    render();
+}
+
+sampleTable.elements.search.addEventListener('input', () => {
+    render({ name: 'search' });
+});
 
 sampleTable.elements.reset.addEventListener('click', () => {
     const form = sampleTable.container.querySelector('form');
@@ -94,13 +89,11 @@ sampleTable.elements.reset.addEventListener('click', () => {
     render({ name: 'reset' });
 });
 
-sampleTable.elements.search.addEventListener('input', () => {
-    render({ name: 'search' });
-});
-
-
 document.addEventListener('pagination-change', (e) => {
     render({ name: 'page', value: e.detail.page });
 });
 
-render();
+const appRoot = document.querySelector('#app');
+appRoot.appendChild(sampleTable.container);
+
+init();
