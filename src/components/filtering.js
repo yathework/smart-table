@@ -1,3 +1,4 @@
+// components/filtering.js
 export function initFiltering(elements) {
     const updateIndexes = (elements, indexes) => {
         const sellerSelect = elements.searchBySeller;
@@ -15,19 +16,39 @@ export function initFiltering(elements) {
 
     const applyFiltering = (query, state, action) => {
         if (action && action.name === 'clear') {
-            const field = action.field;
-            const input = elements[`searchBy${field}`];
-            if (input) input.value = '';
+            const button = action.target || action;
+            if (button && button.parentElement) {
+                const input = button.parentElement.querySelector('input');
+                if (input) {
+                    input.value = '';
+                }
+            }
         }
 
         const filter = {};
-        const filterFields = ['searchByDate', 'searchByCustomer', 'searchBySeller', 'totalFrom', 'totalTo'];
+        const fieldMapping = {
+            searchByDate: 'date',
+            searchByCustomer: 'customer',
+            searchBySeller: 'seller',
+            totalFrom: 'totalFrom',
+            totalTo: 'totalTo'
+        };
 
-        filterFields.forEach(key => {
+        Object.keys(fieldMapping).forEach(key => {
             const el = elements[key];
-            if (el && el.value) {
-                filter[`filter[${el.name}]`] = el.value;
+            if (!el) return;
+            let value;
+            if (key === 'searchBySeller' && el.tagName === 'SELECT') {
+                const selectedOption = el.options[el.selectedIndex];
+                if (selectedOption && selectedOption.value !== '') {
+                    value = selectedOption.textContent.trim();
+                }
+            } else {
+                value = el.value.trim();
             }
+            if (!value) return;
+
+            filter[`filter[${fieldMapping[key]}]`] = value;
         });
 
         return Object.keys(filter).length ? Object.assign({}, query, filter) : query;

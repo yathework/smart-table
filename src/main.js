@@ -1,7 +1,7 @@
+// main.js
 import './fonts/ys-display/fonts.css';
 import './style.css';
 
-import { data as sourceData } from './data/dataset_1.js';
 import { initData } from './data.js';
 import { processFormData } from './lib/utils.js';
 import { initTable } from './components/table.js';
@@ -10,7 +10,7 @@ import { initFiltering } from './components/filtering.js';
 import { initSorting } from './components/sorting.js';
 import { initPagination } from './components/pagination.js';
 
-const api = initData(sourceData);
+const api = initData();
 
 const sampleTable = initTable({
     tableTemplate: 'table',
@@ -27,15 +27,34 @@ const { applyPagination, updatePagination } = initPagination(
     (el, page, isCurrent) => {
         const input = el.querySelector('input');
         const span = el.querySelector('span');
-        input.value = page;
-        input.checked = isCurrent;
-        span.textContent = page;
+        if (input) {
+            input.value = page;
+            input.checked = isCurrent;
+            input.addEventListener('change', () => {
+                document.dispatchEvent(new CustomEvent('pagination-change', { detail: { page } }));
+            });
+        }
+        if (span) span.textContent = page;
         return el;
     }
 );
 
+function normalizeAction(action) {
+    if (!action) return {};
+    if (action instanceof HTMLElement) {
+        return {
+            name: action.getAttribute('name'),
+            value: action.value,
+            field: action.dataset.field,
+            order: action.dataset.value,
+            target: action,
+        };
+    }
+    return action;
+}
+
 function collectState() {
-    const form = sampleTable.container.querySelector('form');
+    const form = sampleTable.container;
     if (!form) {
         console.error('Форма не найдена');
         return {};
@@ -54,7 +73,8 @@ function collectState() {
     return state;
 }
 
-async function render(action) {
+async function render(rawAction) {
+    const action = normalizeAction(rawAction);
     const state = collectState();
     let query = {};
 
@@ -77,23 +97,8 @@ async function init() {
     render();
 }
 
-sampleTable.elements.search.addEventListener('input', () => {
-    render({ name: 'search' });
-});
-
-sampleTable.elements.reset.addEventListener('click', () => {
-    const form = sampleTable.container.querySelector('form');
-    if (form) form.reset();
-    const searchInput = sampleTable.elements.search;
-    if (searchInput) searchInput.value = '';
-    render({ name: 'reset' });
-});
-
-document.addEventListener('pagination-change', (e) => {
-    render({ name: 'page', value: e.detail.page });
-});
-
 const appRoot = document.querySelector('#app');
+appRoot.appendChild(sampleTable.search.container);
 appRoot.appendChild(sampleTable.container);
 
 init();

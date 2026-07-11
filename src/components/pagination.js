@@ -1,7 +1,9 @@
+// components/pagination.js
 import { getPages } from '../lib/utils.js';
 
 export function initPagination({ pages, fromRow, toRow, totalRows }, createPage) {
-    if (pages) pages.innerHTML = '';
+    const pageTemplate = pages.firstElementChild.cloneNode(true);
+    pages.innerHTML = '';
     let pageCount;
 
     const applyPagination = (query, state, action) => {
@@ -31,25 +33,10 @@ export function initPagination({ pages, fromRow, toRow, totalRows }, createPage)
 
         const visiblePages = getPages(currentPage, pageCount, 5);
         if (pages) {
-            pages.innerHTML = '';
-            visiblePages.forEach(p => {
-                const label = document.createElement('label');
-                label.className = 'pagination-button';
-                const radio = document.createElement('input');
-                radio.type = 'radio';
-                radio.name = 'page';
-                radio.value = p;
-                radio.checked = (p === currentPage);
-                radio.addEventListener('change', () => {
-                    const event = new CustomEvent('pagination-change', { detail: { page: p } });
-                    document.dispatchEvent(event);
-                });
-                label.appendChild(radio);
-                const span = document.createElement('span');
-                span.textContent = p;
-                label.appendChild(span);
-                pages.appendChild(label);
-            });
+            pages.replaceChildren(...visiblePages.map(p => {
+                const el = pageTemplate.cloneNode(true);
+                return createPage(el, p, p === currentPage);
+            }));
         }
 
         const from = total === 0 ? 0 : (currentPage - 1) * limit + 1;

@@ -1,3 +1,4 @@
+// components/table.js
 import { cloneTemplate } from '../lib/utils.js';
 
 export function initTable(settings, onAction) {
@@ -6,70 +7,60 @@ export function initTable(settings, onAction) {
     const root = cloneTemplate(tableTemplate);
     const form = root.container;
 
-    const wrapper = document.createElement('div');
+    const searchRoot = cloneTemplate('search');
+    const headerRoot = cloneTemplate('header');
+    const filterRoot = cloneTemplate('filter');
+    const paginationRoot = cloneTemplate('pagination');
 
-    const outside = before.filter(name => name === 'search');
-    const inside = before.filter(name => name === 'header' || name === 'filter');
+    form.prepend(headerRoot.container, filterRoot.container);
+    form.appendChild(paginationRoot.container);
 
-    outside.forEach(name => {
-        const tmpl = cloneTemplate(name);
-        wrapper.appendChild(tmpl.container);
-        root[name] = tmpl;
-    });
+    root.search = searchRoot;
+    root.header = headerRoot;
+    root.filter = filterRoot;
+    root.pagination = paginationRoot;
+    root.container = form;
 
-    inside.forEach(name => {
-        const tmpl = cloneTemplate(name);
-        form.prepend(tmpl.container);
-        root[name] = tmpl;
-    });
-
-    wrapper.appendChild(form);
-
-    after.forEach(name => {
-        const tmpl = cloneTemplate(name);
-        wrapper.appendChild(tmpl.container);
-        root[name] = tmpl;
-    });
-
-    root.container = wrapper;
-
-    const allElements = Array.from(wrapper.querySelectorAll('[data-name]')).reduce((acc, el) => {
+    const formElements = Array.from(form.querySelectorAll('[data-name]'));
+    const searchElements = Array.from(searchRoot.container.querySelectorAll('[data-name]'));
+    const allElements = [...formElements, ...searchElements].reduce((acc, el) => {
         acc[el.dataset.name] = el;
         return acc;
     }, {});
     root.elements = allElements;
 
-    wrapper.addEventListener('click', (e) => {
-        const target = e.target.closest('button[type="submit"]');
-        if (target) {
-            e.preventDefault();
-            const action = {
-                name: target.getAttribute('name'),
-                value: target.value,
-                field: target.dataset.field,
-                order: target.dataset.value,
-                target: target,
-            };
-            onAction(action);
-        }
+    if (allElements.search) {
+        allElements.search.addEventListener('input', () => {
+            onAction({ name: 'search' });
+        });
+    }
+
+    if (allElements.reset) {
+        allElements.reset.addEventListener('click', () => {
+            form.reset();
+            if (allElements.search) allElements.search.value = '';
+        });
+    }
+
+    form.addEventListener('change', (e) => {
+        onAction({ name: 'change', target: e.target });
     });
 
-    wrapper.addEventListener('input', (e) => {
-        const target = e.target;
-        if (target.closest('form')) {
-            onAction({ name: 'input', target });
-        }
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        onAction(e.submitter);
     });
 
-    wrapper.addEventListener('change', (e) => {
-        const target = e.target;
-        if (target.name === 'rowsPerPage') {
-            onAction({ name: 'change', target });
-        }
+    form.addEventListener('reset', () => {
+        setTimeout(() => onAction({ name: 'reset' }), 0);
+    });
+
+    document.addEventListener('pagination-change', (e) => {
+        onAction({ name: 'page', value: e.detail.page });
     });
 
     const render = (data) => {
-        const rowTemplateEl = document.getElementById(rowTemplate);
+        if (!data || !Array.isArray(data)) return;
         const nextRows = data.map(item => {
             const row = cloneTemplate(rowTemplate);
             Object.keys(item).forEach(key => {
