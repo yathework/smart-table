@@ -72,7 +72,7 @@ export function initData(sourceData) {
                 id: item.receipt_id,
                 date: item.date,
                 seller: sellers[item.seller_id],
-                customer: sellers[item.customer_id],
+                customer: customers[item.customer_id],   // ← исправлено
                 total: item.total_amount
             }));
             return {
