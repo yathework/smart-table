@@ -23,17 +23,66 @@ export function initData(sourceData) {
 
     const getLocalRecords = (query) => {
         if (!sellers || !customers) buildLocalIndexes();
-        const allItems = sourceData.purchase_records.map(item => ({
+
+        let items = sourceData.purchase_records.map(item => ({
             receipt_id: item.receipt_id,
             date: item.date,
             seller_id: item.seller_id,
             customer_id: item.customer_id,
             total_amount: item.total_amount
         }));
+
+        // search
+        if (query.search) {
+            const s = query.search.toLowerCase();
+            items = items.filter(item => {
+                const date = item.date.toLowerCase();
+                const sellerName = sellers[item.seller_id]?.name.toLowerCase() || '';
+                const customerName = customers[item.customer_id]?.name.toLowerCase() || '';
+                return date.includes(s) || sellerName.includes(s) || customerName.includes(s);
+            });
+        }
+
+        // filters
+        if (query['filter[date]']) {
+            const f = query['filter[date]'];
+            items = items.filter(item => item.date.includes(f));
+        }
+        if (query['filter[customer]']) {
+            const f = query['filter[customer]'].toLowerCase();
+            items = items.filter(item => customers[item.customer_id]?.name.toLowerCase().includes(f));
+        }
+        if (query['filter[seller]']) {
+            const f = query['filter[seller]'].toLowerCase();
+            items = items.filter(item => sellers[item.seller_id]?.name.toLowerCase() === f);
+        }
+        if (query['filter[totalFrom]']) {
+            const min = parseFloat(query['filter[totalFrom]']);
+            if (!isNaN(min)) items = items.filter(item => item.total_amount >= min);
+        }
+        if (query['filter[totalTo]']) {
+            const max = parseFloat(query['filter[totalTo]']);
+            if (!isNaN(max)) items = items.filter(item => item.total_amount <= max);
+        }
+
+        // sort
+        if (query.sort) {
+            const [field, order] = query.sort.split(':');
+            if (field === 'date' || field === 'total') {
+                items.sort((a, b) => {
+                    let valA = field === 'date' ? a.date : a.total_amount;
+                    let valB = field === 'date' ? b.date : b.total_amount;
+                    if (order === 'down') return valA < valB ? 1 : valA > valB ? -1 : 0;
+                    return valA < valB ? -1 : valA > valB ? 1 : 0;
+                });
+            }
+        }
+
+        const total = items.length;
         const limit = parseInt(query.limit) || 10;
         const page = parseInt(query.page) || 1;
         const start = (page - 1) * limit;
-        const itemsSlice = allItems.slice(start, start + limit);
+        const itemsSlice = items.slice(start, start + limit);
         const mapped = itemsSlice.map(item => ({
             id: item.receipt_id,
             date: item.date,
@@ -41,10 +90,7 @@ export function initData(sourceData) {
             customer: customers[item.customer_id],
             total: item.total_amount
         }));
-        return {
-            total: allItems.length,
-            items: mapped
-        };
+        return { total, items: mapped };
     };
 
     const mapRecords = (data) => data.map(item => ({
