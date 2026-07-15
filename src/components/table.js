@@ -1,3 +1,4 @@
+// components/table.js
 import { cloneTemplate } from '../lib/utils.js';
 
 export function initTable(settings, onAction) {

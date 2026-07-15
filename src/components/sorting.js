@@ -1,3 +1,4 @@
+// components/sorting.js
 import { sortMap } from '../lib/sort.js';
 
 export function initSorting(columns) {

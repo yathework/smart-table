@@ -1,3 +1,4 @@
+// components/filtering.js
 export function initFiltering(elements) {
     const updateIndexes = (elements, indexes) => {
         const sellerSelect = elements.searchBySeller;
