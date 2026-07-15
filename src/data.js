@@ -32,7 +32,6 @@ export function initData(sourceData) {
             total_amount: item.total_amount
         }));
 
-        // search
         if (query.search) {
             const s = query.search.toLowerCase();
             items = items.filter(item => {
@@ -43,7 +42,6 @@ export function initData(sourceData) {
             });
         }
 
-        // filters
         if (query['filter[date]']) {
             const f = query['filter[date]'];
             items = items.filter(item => item.date.includes(f));
@@ -65,7 +63,6 @@ export function initData(sourceData) {
             if (!isNaN(max)) items = items.filter(item => item.total_amount <= max);
         }
 
-        // sort
         if (query.sort) {
             const [field, order] = query.sort.split(':');
             if (field === 'date' || field === 'total') {
@@ -80,7 +77,9 @@ export function initData(sourceData) {
 
         const total = items.length;
         const limit = parseInt(query.limit) || 10;
-        const page = parseInt(query.page) || 1;
+        let page = parseInt(query.page) || 1;
+        const maxPage = Math.ceil(total / limit) || 1;
+        if (page > maxPage) page = maxPage;
         const start = (page - 1) * limit;
         const itemsSlice = items.slice(start, start + limit);
         const mapped = itemsSlice.map(item => ({
@@ -90,7 +89,7 @@ export function initData(sourceData) {
             customer: customers[item.customer_id],
             total: item.total_amount
         }));
-        return { total, items: mapped };
+        return { total, items: mapped, page };
     };
 
     const mapRecords = (data) => data.map(item => ({

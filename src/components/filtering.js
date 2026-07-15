@@ -37,10 +37,6 @@ export function initFiltering(elements) {
             const value = el.value.trim();
             if (!value) return;
 
-            if (key === 'searchByDate' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                return;
-            }
-
             filter[`filter[${fieldMapping[key]}]`] = value;
         });
 

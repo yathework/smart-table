@@ -54,10 +54,8 @@ export function initTable(settings, onAction) {
         }
     });
 
-    form.addEventListener('change', (e) => {
-        if (e.target.tagName === 'SELECT') {
-            onAction();
-        }
+    form.addEventListener('change', () => {
+        onAction();
     });
 
     form.addEventListener('submit', (e) => {
