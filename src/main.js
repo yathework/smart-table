@@ -93,17 +93,35 @@ async function render(rawAction) {
     }
 }
 
-async function init() {
-    await api.checkServer();
-    const indexes = await api.getIndexes();
+function initLocal() {
+    if (!sourceData) return;
+    const { sellers } = api.buildLocalIndexes();
     updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: Object.values(indexes.sellers)
+        searchBySeller: Object.values(sellers).map(s => s.name)
     });
-    render();
+    const { total, items } = api.getLocalRecords({ limit: 10, page: 1 });
+    updatePagination(total, { limit: 10, page: 1 });
+    sampleTable.render(items);
+}
+
+initLocal();
+
+async function initServer() {
+    try {
+        const indexes = await api.getIndexes();
+        updateIndexes(sampleTable.filter.elements, {
+            searchBySeller: Object.values(indexes.sellers).map(s =>
+                typeof s === 'string' ? s : s.name
+            )
+        });
+        await render();
+    } catch (e) {
+        console.warn('Сервер недоступен, остаёмся на локальных данных');
+    }
 }
 
 const appRoot = document.querySelector('#app');
 appRoot.appendChild(sampleTable.search.container);
 appRoot.appendChild(sampleTable.container);
 
-init();
+initServer();
