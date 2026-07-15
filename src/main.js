@@ -94,6 +94,7 @@ async function render(rawAction) {
 }
 
 async function init() {
+    await api.checkServer();
     const indexes = await api.getIndexes();
     updateIndexes(sampleTable.filter.elements, {
         searchBySeller: Object.values(indexes.sellers)

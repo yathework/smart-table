@@ -1,6 +1,6 @@
 // data.js
 const BASE_URL = 'https://webinars.webdev.education-services.ru/sp7-api';
-const FETCH_TIMEOUT = 2000;
+const CHECK_TIMEOUT = 500;
 
 export function initData(sourceData) {
     let sellers;
@@ -8,12 +8,13 @@ export function initData(sourceData) {
     let lastResult;
     let lastQuery;
     let useLocalFallback = false;
+    let serverChecked = false;
 
-    const fetchWithTimeout = (url) => {
+    const fetchWithTimeout = (url, timeout = CHECK_TIMEOUT) => {
         return Promise.race([
             fetch(url),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout')), FETCH_TIMEOUT)
+                setTimeout(() => reject(new Error('Timeout')), timeout)
             )
         ]);
     };
@@ -38,9 +39,23 @@ export function initData(sourceData) {
         return { sellers, customers };
     };
 
+    const checkServer = async () => {
+        if (serverChecked) return;
+        serverChecked = true;
+        try {
+            await fetchWithTimeout(`${BASE_URL}/sellers`, CHECK_TIMEOUT);
+        } catch (e) {
+            useLocalFallback = true;
+            buildLocalIndexes();
+        }
+    };
+
     const getIndexes = async () => {
+        if (!serverChecked) {
+            await checkServer();
+        }
         if (useLocalFallback) {
-            return buildLocalIndexes();
+            return { sellers, customers };
         }
         if (!sellers || !customers) {
             try {
@@ -59,6 +74,9 @@ export function initData(sourceData) {
     };
 
     const getRecords = async (query, isUpdated = false) => {
+        if (!serverChecked) {
+            await checkServer();
+        }
         if (useLocalFallback) {
             const allItems = sourceData.purchase_records.map(item => ({
                 receipt_id: item.receipt_id,
@@ -106,10 +124,12 @@ export function initData(sourceData) {
             return lastResult;
         } catch (error) {
             useLocalFallback = true;
-            await getIndexes();
+            if (!sellers || !customers) {
+                buildLocalIndexes();
+            }
             return getRecords(query, isUpdated);
         }
     };
 
-    return { getIndexes, getRecords };
+    return { getIndexes, getRecords, checkServer };
 }
