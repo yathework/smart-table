@@ -1,8 +1,7 @@
-// components/table.js
 import { cloneTemplate } from '../lib/utils.js';
 
 export function initTable(settings, onAction) {
-    const { tableTemplate, rowTemplate, before, after } = settings;
+    const { tableTemplate, rowTemplate } = settings;
 
     const root = cloneTemplate(tableTemplate);
     const form = root.container;
@@ -38,12 +37,26 @@ export function initTable(settings, onAction) {
     if (allElements.reset) {
         allElements.reset.addEventListener('click', () => {
             form.reset();
-            if (allElements.search) allElements.search.value = '';
         });
     }
 
+    form.addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (button && button.name === 'clear') {
+            onAction(button);
+        }
+    });
+
+    form.addEventListener('input', (e) => {
+        if (e.target.name !== 'search') {
+            onAction();
+        }
+    });
+
     form.addEventListener('change', (e) => {
-        onAction({ name: 'change', target: e.target });
+        if (e.target.tagName === 'SELECT') {
+            onAction();
+        }
     });
 
     form.addEventListener('submit', (e) => {
@@ -52,7 +65,11 @@ export function initTable(settings, onAction) {
     });
 
     form.addEventListener('reset', () => {
-        setTimeout(() => onAction({ name: 'reset' }), 0);
+        setTimeout(() => {
+            const searchInput = root.elements.search;
+            if (searchInput) searchInput.value = '';
+            onAction();
+        });
     });
 
     document.addEventListener('pagination-change', (e) => {

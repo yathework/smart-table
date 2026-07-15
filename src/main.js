@@ -1,4 +1,3 @@
-// main.js
 import './fonts/ys-display/fonts.css';
 import './style.css';
 
@@ -83,10 +82,13 @@ async function render(rawAction) {
     query = applySorting(query, state, action);
     query = applyPagination(query, state, action);
 
-    const { total, items } = await api.getRecords(query);
-
-    updatePagination(total, query);
-    sampleTable.render(items);
+    try {
+        const { total, items } = await api.getRecords(query);
+        updatePagination(total, query);
+        sampleTable.render(items);
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
 }
 
 async function init() {

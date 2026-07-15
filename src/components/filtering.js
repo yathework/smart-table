@@ -1,27 +1,23 @@
-// components/filtering.js
 export function initFiltering(elements) {
     const updateIndexes = (elements, indexes) => {
         const sellerSelect = elements.searchBySeller;
         if (sellerSelect) {
             sellerSelect.innerHTML = '<option value="">—</option>';
             const sellers = indexes.searchBySeller || [];
-            sellers.forEach(seller => {
+            sellers.forEach(sellerName => {
                 const option = document.createElement('option');
-                option.value = seller.id;
-                option.textContent = seller.name;
+                option.value = sellerName;
+                option.textContent = sellerName;
                 sellerSelect.appendChild(option);
             });
         }
     };
 
     const applyFiltering = (query, state, action) => {
-        if (action && action.name === 'clear') {
-            const button = action.target || action;
-            if (button && button.parentElement) {
-                const input = button.parentElement.querySelector('input');
-                if (input) {
-                    input.value = '';
-                }
+        if (action && action.name === 'clear' && action.parentElement) {
+            const input = action.parentElement.querySelector('input');
+            if (input) {
+                input.value = '';
             }
         }
 
@@ -37,16 +33,12 @@ export function initFiltering(elements) {
         Object.keys(fieldMapping).forEach(key => {
             const el = elements[key];
             if (!el) return;
-            let value;
-            if (key === 'searchBySeller' && el.tagName === 'SELECT') {
-                const selectedOption = el.options[el.selectedIndex];
-                if (selectedOption && selectedOption.value !== '') {
-                    value = selectedOption.textContent.trim();
-                }
-            } else {
-                value = el.value.trim();
-            }
+            const value = el.value.trim();
             if (!value) return;
+
+            if (key === 'searchByDate' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return;
+            }
 
             filter[`filter[${fieldMapping[key]}]`] = value;
         });

@@ -1,4 +1,3 @@
-// components/pagination.js
 import { getPages } from '../lib/utils.js';
 
 export function initPagination({ pages, fromRow, toRow, totalRows }, createPage) {
