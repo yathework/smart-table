@@ -1,7 +1,6 @@
 // main.js
 import './fonts/ys-display/fonts.css';
 import './style.css';
-
 import { data as sourceData } from './data/dataset_1.js';
 import { initData } from './data.js';
 import { processFormData } from './lib/utils.js';
@@ -56,15 +55,10 @@ function normalizeAction(action) {
 
 function collectState() {
     const form = sampleTable.container;
-    if (!form) {
-        console.error('Форма не найдена');
-        return {};
-    }
+    if (!form) return {};
     const state = processFormData(new FormData(form));
     const searchInput = sampleTable.elements.search;
-    if (searchInput) {
-        state.search = searchInput.value;
-    }
+    if (searchInput) state.search = searchInput.value;
     if (sampleTable.elements.rowsPerPage) {
         state.rowsPerPage = parseInt(sampleTable.elements.rowsPerPage.value) || 10;
     } else {
@@ -84,44 +78,30 @@ async function render(rawAction) {
     query = applySorting(query, state, action);
     query = applyPagination(query, state, action);
 
-    try {
-        const { total, items } = await api.getRecords(query);
-        updatePagination(total, query);
-        sampleTable.render(items);
-    } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
+    const { total, items, page } = await api.getRecords(query);
+    if (page && sampleTable.elements.page) {
+        sampleTable.elements.page.value = page;
     }
-}
-
-function initLocal() {
-    if (!sourceData) return;
-    const { sellers } = api.buildLocalIndexes();
-    updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: Object.values(sellers).map(s => s.name)
-    });
-    const { total, items } = api.getLocalRecords({ limit: 10, page: 1 });
-    updatePagination(total, { limit: 10, page: 1 });
+    updatePagination(total, { limit: query.limit || 10, page: page || query.page || 1 });
     sampleTable.render(items);
 }
 
-initLocal();
-
-async function initServer() {
-    try {
-        const indexes = await api.getIndexes();
-        updateIndexes(sampleTable.filter.elements, {
-            searchBySeller: Object.values(indexes.sellers).map(s =>
-                typeof s === 'string' ? s : s.name
-            )
-        });
-        await render();
-    } catch (e) {
-        console.warn('Сервер недоступен, остаёмся на локальных данных');
-    }
+async function init() {
+    api.buildLocalIndexes();
+    updateIndexes(sampleTable.filter.elements, {
+        searchBySeller: Object.values(api.buildLocalIndexes().sellers).map(s => s.name)
+    });
+    await render();
 }
+
+init();
+
+setTimeout(() => {
+    api.checkServerAvailability().then(() => {
+        render();
+    });
+}, 0);
 
 const appRoot = document.querySelector('#app');
 appRoot.appendChild(sampleTable.search.container);
 appRoot.appendChild(sampleTable.container);
-
-initServer();

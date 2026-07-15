@@ -4,9 +4,7 @@ const BASE_URL = 'https://webinars.webdev.education-services.ru/sp7-api';
 export function initData(sourceData) {
     let sellers = null;
     let customers = null;
-    let lastResult = null;
-    let lastQuery = null;
-    let useServer = true;
+    let serverAvailable = false;
 
     const buildLocalIndexes = () => {
         if (!sourceData) throw new Error('sourceData required for local mode');
@@ -43,8 +41,7 @@ export function initData(sourceData) {
         }
 
         if (query['filter[date]']) {
-            const f = query['filter[date]'];
-            items = items.filter(item => item.date.includes(f));
+            items = items.filter(item => item.date.includes(query['filter[date]']));
         }
         if (query['filter[customer]']) {
             const f = query['filter[customer]'].toLowerCase();
@@ -92,59 +89,45 @@ export function initData(sourceData) {
         return { total, items: mapped, page };
     };
 
-    const mapRecords = (data) => data.map(item => ({
-        id: item.receipt_id,
-        date: item.date,
-        seller: sellers[item.seller_id],
-        customer: customers[item.customer_id],
-        total: item.total_amount
-    }));
-
-    const getIndexes = async () => {
-        if (!useServer) {
-            return buildLocalIndexes();
+    const checkServerAvailability = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/sellers`, { signal: AbortSignal.timeout(500) });
+            serverAvailable = response.ok;
+        } catch (e) {
+            serverAvailable = false;
         }
-        if (!sellers || !customers) {
-            try {
-                const [sellersData, customersData] = await Promise.all([
-                    fetch(`${BASE_URL}/sellers`).then(res => res.json()),
-                    fetch(`${BASE_URL}/customers`).then(res => res.json()),
-                ]);
-                sellers = sellersData;
-                customers = customersData;
-            } catch (e) {
-                useServer = false;
-                return buildLocalIndexes();
-            }
-        }
-        return { sellers, customers };
     };
 
-    const getRecords = async (query, isUpdated = false) => {
-        if (!useServer) {
+    const getRecords = async (query) => {
+        if (!serverAvailable) {
             return getLocalRecords(query);
         }
+
         const qs = new URLSearchParams(query);
-        const nextQuery = qs.toString();
-        if (lastQuery === nextQuery && !isUpdated) {
-            return lastResult;
-        }
+        const url = `${BASE_URL}/records?${qs.toString()}`;
+
         try {
-            const response = await fetch(`${BASE_URL}/records?${nextQuery}`);
-            if (!response.ok) throw new Error(`Server error: ${response.status}`);
-            const records = await response.json();
-            lastQuery = nextQuery;
-            lastResult = {
-                total: records.total,
-                items: mapRecords(records.items)
+            const response = await fetch(url, { signal: AbortSignal.timeout(500) });
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            const data = await response.json();
+            return {
+                total: data.total,
+                items: data.items.map(item => ({
+                    id: item.receipt_id,
+                    date: item.date,
+                    seller: sellers[item.seller_id],
+                    customer: customers[item.customer_id],
+                    total: item.total_amount
+                })),
             };
-            return lastResult;
-        } catch (error) {
-            useServer = false;
+        } catch (e) {
+            serverAvailable = false;
             if (!sellers || !customers) buildLocalIndexes();
             return getLocalRecords(query);
         }
     };
 
-    return { getIndexes, getRecords, getLocalRecords, buildLocalIndexes };
+    return { getRecords, getLocalRecords, buildLocalIndexes, checkServerAvailability };
 }
