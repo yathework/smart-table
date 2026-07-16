@@ -1,7 +1,7 @@
 // main.js
 import './fonts/ys-display/fonts.css';
 import './style.css';
-import { data as sourceData } from './data/dataset_1.js';
+
 import { initData } from './data.js';
 import { processFormData } from './lib/utils.js';
 import { initTable } from './components/table.js';
@@ -10,7 +10,7 @@ import { initFiltering } from './components/filtering.js';
 import { initSorting } from './components/sorting.js';
 import { initPagination } from './components/pagination.js';
 
-const api = initData(sourceData);
+const api = initData();
 
 const sampleTable = initTable({
     tableTemplate: 'table',
@@ -20,8 +20,11 @@ const sampleTable = initTable({
 }, render);
 
 const applySearching = initSearching('search');
-const { applyFiltering, updateIndexes } = initFiltering(sampleTable.elements);
-const applySorting = initSorting(['date', 'total']);
+const { applyFiltering, updateIndexes } = initFiltering(sampleTable.filter.elements);
+const applySorting = initSorting([
+    sampleTable.header.elements.sortByDate,
+    sampleTable.header.elements.sortByTotal
+]);
 const { applyPagination, updatePagination } = initPagination(
     sampleTable.pagination.elements,
     (el, page, isCurrent) => {
@@ -30,9 +33,6 @@ const { applyPagination, updatePagination } = initPagination(
         if (input) {
             input.value = page;
             input.checked = isCurrent;
-            input.addEventListener('change', () => {
-                document.dispatchEvent(new CustomEvent('pagination-change', { detail: { page } }));
-            });
         }
         if (span) span.textContent = page;
         return el;
@@ -55,10 +55,15 @@ function normalizeAction(action) {
 
 function collectState() {
     const form = sampleTable.container;
-    if (!form) return {};
+    if (!form) {
+        console.error('Форма не найдена');
+        return {};
+    }
     const state = processFormData(new FormData(form));
     const searchInput = sampleTable.elements.search;
-    if (searchInput) state.search = searchInput.value;
+    if (searchInput) {
+        state.search = searchInput.value;
+    }
     if (sampleTable.elements.rowsPerPage) {
         state.rowsPerPage = parseInt(sampleTable.elements.rowsPerPage.value) || 10;
     } else {
@@ -78,30 +83,21 @@ async function render(rawAction) {
     query = applySorting(query, state, action);
     query = applyPagination(query, state, action);
 
-    const { total, items, page } = await api.getRecords(query);
-    if (page && sampleTable.elements.page) {
-        sampleTable.elements.page.value = page;
-    }
-    updatePagination(total, { limit: query.limit || 10, page: page || query.page || 1 });
+    const { total, items } = await api.getRecords(query);
+    updatePagination(total, query);
     sampleTable.render(items);
 }
 
 async function init() {
-    api.buildLocalIndexes();
+    const indexes = await api.getIndexes();
     updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: Object.values(api.buildLocalIndexes().sellers).map(s => s.name)
+        searchBySeller: Object.values(indexes.sellers)
     });
-    await render();
+    render();
 }
-
-init();
-
-setTimeout(() => {
-    api.checkServerAvailability().then(() => {
-        render();
-    });
-}, 0);
 
 const appRoot = document.querySelector('#app');
 appRoot.appendChild(sampleTable.search.container);
 appRoot.appendChild(sampleTable.container);
+
+init();

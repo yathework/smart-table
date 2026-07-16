@@ -17,12 +17,10 @@ export function initPagination({ pages, fromRow, toRow, totalRows }, createPage)
         if (action && action.name) {
             if (action.name === 'first') page = 1;
             else if (action.name === 'prev') page = Math.max(1, page - 1);
-            else if (action.name === 'next') page = Math.min(pageCount || 1, page + 1);
-            else if (action.name === 'last') page = pageCount || 1;
+            else if (action.name === 'next') page = page + 1;
+            else if (action.name === 'last') page = pageCount || 99999;
             else if (action.name === 'page') page = parseInt(action.value) || 1;
         }
-
-        page = Math.min(page, pageCount || 1);
 
         return Object.assign({}, query, { limit, page });
     };

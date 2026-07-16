@@ -1,6 +1,14 @@
 // components/table.js
 import { cloneTemplate } from '../lib/utils.js';
 
+function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
 export function initTable(settings, onAction) {
     const { tableTemplate, rowTemplate } = settings;
 
@@ -30,9 +38,10 @@ export function initTable(settings, onAction) {
     root.elements = allElements;
 
     if (allElements.search) {
-        allElements.search.addEventListener('input', () => {
-            onAction({ name: 'search' });
-        });
+        const debouncedSearch = debounce(() => {
+            onAction({ name: 'search' }).catch(e => console.error('Search error:', e));
+        }, 300);
+        allElements.search.addEventListener('input', debouncedSearch);
     }
 
     if (allElements.reset) {
@@ -44,35 +53,39 @@ export function initTable(settings, onAction) {
     form.addEventListener('click', (e) => {
         const button = e.target.closest('button');
         if (button && button.name === 'clear') {
-            onAction(button);
+            onAction(button).catch(e => console.error('Clear error:', e));
         }
     });
 
     form.addEventListener('input', (e) => {
         if (e.target.name !== 'search') {
-            onAction();
+            onAction().catch(e => console.error('Input error:', e));
         }
     });
 
     form.addEventListener('change', () => {
-        onAction();
+        onAction().catch(e => console.error('Change error:', e));
     });
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        onAction(e.submitter);
+        onAction(e.submitter).catch(e => console.error('Submit error:', e));
     });
 
     form.addEventListener('reset', () => {
         setTimeout(() => {
             const searchInput = root.elements.search;
             if (searchInput) searchInput.value = '';
-            onAction();
+            onAction().catch(e => console.error('Reset error:', e));
         });
     });
 
-    document.addEventListener('pagination-change', (e) => {
-        onAction({ name: 'page', value: e.detail.page });
+    const paginationContainer = paginationRoot.container;
+    paginationContainer.addEventListener('change', (e) => {
+        const radio = e.target;
+        if (radio.name === 'page') {
+            onAction({ name: 'page', value: radio.value }).catch(e => console.error('Page error:', e));
+        }
     });
 
     const render = (data) => {

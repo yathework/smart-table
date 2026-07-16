@@ -36,7 +36,6 @@ export function initFiltering(elements) {
             if (!el) return;
             const value = el.value.trim();
             if (!value) return;
-
             filter[`filter[${fieldMapping[key]}]`] = value;
         });
 
