@@ -39,7 +39,7 @@ export function initTable(settings, onAction) {
 
     if (allElements.search) {
         const debouncedSearch = debounce(() => {
-            onAction({ name: 'search' }).catch(e => console.error('Search error:', e));
+            onAction({ name: 'search' });
         }, 300);
         allElements.search.addEventListener('input', debouncedSearch);
     }
@@ -52,39 +52,38 @@ export function initTable(settings, onAction) {
 
     form.addEventListener('click', (e) => {
         const button = e.target.closest('button');
-        if (button && button.name === 'clear') {
-            onAction(button).catch(e => console.error('Clear error:', e));
+        if (button) {
+            onAction(button);
         }
     });
 
     form.addEventListener('input', (e) => {
         if (e.target.name !== 'search') {
-            onAction().catch(e => console.error('Input error:', e));
+            onAction();
         }
     });
 
     form.addEventListener('change', () => {
-        onAction().catch(e => console.error('Change error:', e));
+        onAction();
     });
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        onAction(e.submitter).catch(e => console.error('Submit error:', e));
+        onAction(e.submitter);
     });
 
     form.addEventListener('reset', () => {
         setTimeout(() => {
             const searchInput = root.elements.search;
             if (searchInput) searchInput.value = '';
-            onAction().catch(e => console.error('Reset error:', e));
+            onAction();
         });
     });
 
-    const paginationContainer = paginationRoot.container;
-    paginationContainer.addEventListener('change', (e) => {
+    paginationRoot.container.addEventListener('change', (e) => {
         const radio = e.target;
         if (radio.name === 'page') {
-            onAction({ name: 'page', value: radio.value }).catch(e => console.error('Page error:', e));
+            onAction({ name: 'page', value: radio.value });
         }
     });
 
