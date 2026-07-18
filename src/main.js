@@ -55,15 +55,10 @@ function normalizeAction(action) {
 
 function collectState() {
     const form = sampleTable.container;
-    if (!form) {
-        console.error('Форма не найдена');
-        return {};
-    }
+    if (!form) return {};
     const state = processFormData(new FormData(form));
     const searchInput = sampleTable.elements.search;
-    if (searchInput) {
-        state.search = searchInput.value;
-    }
+    if (searchInput) state.search = searchInput.value;
     if (sampleTable.elements.rowsPerPage) {
         state.rowsPerPage = parseInt(sampleTable.elements.rowsPerPage.value) || 10;
     } else {
@@ -91,9 +86,9 @@ async function render(rawAction) {
 async function init() {
     const indexes = await api.getIndexes();
     updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: Object.values(indexes.sellers)
+        searchBySeller: Object.values(indexes.sellers).map(s => typeof s === 'string' ? s : s.name)
     });
-    render();
+    await render();
 }
 
 const appRoot = document.querySelector('#app');
