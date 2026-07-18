@@ -4,7 +4,7 @@ import { getPages } from '../lib/utils.js';
 export function initPagination({ pages, fromRow, toRow, totalRows }, createPage) {
     const pageTemplate = pages.firstElementChild.cloneNode(true);
     pages.innerHTML = '';
-    let pageCount;
+    let pageCount = 1;
 
     const applyPagination = (query, state, action) => {
         const limit = parseInt(state.rowsPerPage) || 10;
@@ -17,10 +17,12 @@ export function initPagination({ pages, fromRow, toRow, totalRows }, createPage)
         if (action && action.name) {
             if (action.name === 'first') page = 1;
             else if (action.name === 'prev') page = Math.max(1, page - 1);
-            else if (action.name === 'next') page = page + 1;
-            else if (action.name === 'last') page = pageCount || 99999;
+            else if (action.name === 'next') page = Math.min(pageCount, page + 1);
+            else if (action.name === 'last') page = pageCount;
             else if (action.name === 'page') page = parseInt(action.value) || 1;
         }
+
+        page = Math.min(page, pageCount);
 
         return Object.assign({}, query, { limit, page });
     };

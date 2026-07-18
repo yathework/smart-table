@@ -57,14 +57,15 @@ export function initTable(settings, onAction) {
         }
     });
 
-    form.addEventListener('input', (e) => {
-        if (e.target.name !== 'search') {
+    form.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.name === 'rowsPerPage') {
+            onAction({ name: 'change', target });
+        } else if (target.name === 'page') {
+            onAction({ name: 'page', value: target.value });
+        } else {
             onAction();
         }
-    });
-
-    form.addEventListener('change', () => {
-        onAction();
     });
 
     form.addEventListener('submit', (e) => {
@@ -78,13 +79,6 @@ export function initTable(settings, onAction) {
             if (searchInput) searchInput.value = '';
             onAction();
         });
-    });
-
-    paginationRoot.container.addEventListener('change', (e) => {
-        const radio = e.target;
-        if (radio.name === 'page') {
-            onAction({ name: 'page', value: radio.value });
-        }
     });
 
     const render = (data) => {

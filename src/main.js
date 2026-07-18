@@ -88,7 +88,7 @@ async function init() {
     updateIndexes(sampleTable.filter.elements, {
         searchBySeller: Object.values(indexes.sellers)
     });
-    render();
+    await render();
 }
 
 const appRoot = document.querySelector('#app');
