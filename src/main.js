@@ -55,10 +55,15 @@ function normalizeAction(action) {
 
 function collectState() {
     const form = sampleTable.container;
-    if (!form) return {};
+    if (!form) {
+        console.error('Форма не найдена');
+        return {};
+    }
     const state = processFormData(new FormData(form));
     const searchInput = sampleTable.elements.search;
-    if (searchInput) state.search = searchInput.value;
+    if (searchInput) {
+        state.search = searchInput.value;
+    }
     if (sampleTable.elements.rowsPerPage) {
         state.rowsPerPage = parseInt(sampleTable.elements.rowsPerPage.value) || 10;
     } else {
@@ -88,7 +93,7 @@ async function init() {
     updateIndexes(sampleTable.filter.elements, {
         searchBySeller: Object.values(indexes.sellers)
     });
-    await render();
+    render();
 }
 
 const appRoot = document.querySelector('#app');
