@@ -1,7 +1,7 @@
-// components/table.js
+// src/components/table.js
 import { cloneTemplate } from '../lib/utils.js';
 
-function debounce(fn, delay) {
+function debounce(fn, delay = 300) {
     let timer;
     return function (...args) {
         clearTimeout(timer);
@@ -38,10 +38,10 @@ export function initTable(settings, onAction) {
     root.elements = allElements;
 
     if (allElements.search) {
-        const debouncedSearch = debounce(() => {
+        const onSearchInput = debounce(() => {
             onAction({ name: 'search' });
         }, 300);
-        allElements.search.addEventListener('input', debouncedSearch);
+        allElements.search.addEventListener('input', onSearchInput);
     }
 
     if (allElements.reset) {
@@ -52,7 +52,7 @@ export function initTable(settings, onAction) {
 
     form.addEventListener('click', (e) => {
         const button = e.target.closest('button');
-        if (button) {
+        if (button && button.name === 'clear') {
             onAction(button);
         }
     });

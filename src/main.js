@@ -1,4 +1,5 @@
-// main.js
+// src/main.js
+
 import './fonts/ys-display/fonts.css';
 import './style.css';
 
@@ -20,11 +21,14 @@ const sampleTable = initTable({
 }, render);
 
 const applySearching = initSearching('search');
+
 const { applyFiltering, updateIndexes } = initFiltering(sampleTable.filter.elements);
+
 const applySorting = initSorting([
     sampleTable.header.elements.sortByDate,
     sampleTable.header.elements.sortByTotal
 ]);
+
 const { applyPagination, updatePagination } = initPagination(
     sampleTable.pagination.elements,
     (el, page, isCurrent) => {
@@ -79,20 +83,23 @@ async function render(rawAction) {
     query = applyPagination(query, state, action);
 
     const { total, items } = await api.getRecords(query);
-    updatePagination(total, query);
+
+    updatePagination(total, { limit: query.limit, page: query.page });
     sampleTable.render(items);
 }
 
 async function init() {
     const indexes = await api.getIndexes();
+
     updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: Object.values(indexes.sellers).map(s => typeof s === 'string' ? s : s.name)
+        searchBySeller: indexes.sellers
     });
+
     await render();
 }
+
+init();
 
 const appRoot = document.querySelector('#app');
 appRoot.appendChild(sampleTable.search.container);
 appRoot.appendChild(sampleTable.container);
-
-init();
